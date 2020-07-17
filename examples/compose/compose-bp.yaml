@@ -1,0 +1,95 @@
+# blueprint that is equivalent to a example docker-compose file from
+# https://docs.docker.com/compose/networking/#specifying-custom-networks
+
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://cloudify.co/spec/cloudify/5.0.5/types.yaml
+  - plugin:docker-plugin
+
+
+node_templates:
+
+  localhost:
+    type: docker.Docker
+
+  proxy_image:
+    type: docker.Image
+    properties:
+      repository: proxy
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+
+  app_image:
+    type: docker.Image
+    properties:
+      repository: proxy
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+
+  db_image:
+    type: docker.Image
+    properties:
+      repository: proxy
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+
+  frontend_network:
+    type: docker.Network
+    properties:
+      name: frontend
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+
+  backend_network:
+    type: docker.Network
+    properties:
+      name: frontend
+      driver: custom-driver
+      options:
+
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+#      -
+  proxy:
+    type: docker.Container
+    properties:
+      name: proxy
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+      - type: docker.container_from_image
+        target: proxy_image
+      - type: docker.container_connected_to_network
+        target: frontend_network
+
+  app:
+    type: docker.Container
+    properties:
+      name: proxy
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+      - type: docker.container_from_image
+        target: app_image
+      - type: docker.container_connected_to_network
+        target: frontend_network
+      - type: docker.container_connected_to_network
+        target: backend_network
+
+  db:
+    type: docker.Container
+    properties:
+      name: proxy
+    relationships:
+      - type: docker.using_docker_host
+        target: localhost
+      - type: docker.container_from_image
+        target: db_image
+      - type: docker.container_connected_to_network
+        target: backend_network

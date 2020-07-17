@@ -1,0 +1,143 @@
+plugins:
+  docker:
+    executor: central_deployment_agent
+    install: false
+    package_name: 'docker-plugin'
+
+node_types:
+  docker.Docker:
+    derived_from: cloudify.nodes.Compute
+    properties:
+      ip:
+        default: '127.0.0.1'
+      connection_kwargs:
+        default: {}
+      tls:
+        type: boolean
+        default: false
+      tls_settings:
+        default: {}
+      agent_config:
+        default:
+          install_method: none
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: docker.docker_plugin.tasks.prepare_client
+
+  docker.Image:
+    derived_from: cloudify.nodes.Root
+    properties:
+      dockerfile:
+        type: string
+        default: ''
+      repository:
+        type: string
+        default: ''
+      tag:
+        type: string
+        default: latest
+      image_name:
+        type: string
+        default: ''
+      keep:
+        type: boolean
+        default: false
+        description: if true, don't delete the image on uninstall
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: docker.docker_plugin.tasks.build_image
+        delete:
+          implementation: docker.docker_plugin.tasks.delete_image
+
+  docker.Container:
+    derived_from: cloudify.nodes.Root
+    properties:
+      name:
+        type: string
+        default: null
+      command:
+        default: null
+      port_bindings:
+        default: {}
+      additional_create_parameters:
+        default: {}
+      environment:
+        default: {}
+      network_aliases:
+        default: {}
+      additional_volume_parameters:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: docker.docker_plugin.tasks.create_container
+        start:
+          implementation: docker.docker_plugin.tasks.start_container
+        stop:
+          implementation: docker.docker_plugin.tasks.stop_container
+        delete:
+          implementation: docker.docker_plugin.tasks.delete_container
+
+  docker.Network:
+    derived_from: cloudify.nodes.Root
+    properties:
+      name:
+        type: string
+        default: null
+      driver:
+        type: string
+        default: null
+      options:
+        default: {}
+      external:
+        type: boolean
+        default: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        configure:
+          implementation: docker.docker_plugin.tasks.create_network
+        delete:
+          implementation: docker.docker_plugin.tasks.delete_network
+
+  docker.Volume:
+    derived_from: cloudify.nodes.Root
+    properties:
+      name:
+        default: null
+      driver:
+        default: local
+      driver_opts:
+        default: {}
+      mount_at:
+        type: string
+      mode:
+        default: 'rw'
+      source:
+        default: null
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: docker.docker_plugin.tasks.create_volume
+        delete:
+          implementation: docker.docker_plugin.tasks.delete_volume
+
+relationships:
+  docker.container_connected_to_container:
+    derived_from: cloudify.relationships.connected_to
+
+  docker.using_docker_host:
+    derived_from: cloudify.relationships.contained_in
+
+  docker.container_connected_to_network:
+    derived_from: cloudify.relationships.connected_to
+
+  docker.container_connected_to_volume:
+    derived_from: cloudify.relationships.connected_to
+
+  docker.container_from_image:
+    derived_from: cloudify.relationships.depends_on
+
+  docker.connected_to_swarm_manager:
+    derived_from: cloudify.relationships.connected_to

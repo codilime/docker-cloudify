@@ -1,0 +1,20 @@
+tosca_definitions_version: cloudify_dsl_1_3
+
+imports:
+  - http://cloudify.co/spec/cloudify/5.0.5/types.yaml
+  - plugin:docker-plugin
+
+
+node_templates:
+  nginx_image:
+    type: docker.Image
+    properties:
+      repository: nginx
+
+  nginx:
+    type: docker.Container
+    properties:
+      name: nginx
+    relationships:
+      - type: docker.container_from_image
+        target: nginx_image
