@@ -10,11 +10,3 @@ cfy init -b bp bp.yaml
 cfy exec start -b bp install
 docker logs hw  # the "hw" container should have logged "Hello world"
 ```
-
-
-### files.lst
-
-The [image/](image) directory contains a `files.lst` file listing all the files
-in it. This is due to a Cloudify limitation - it is only possible to download
-files using `ctx.download_resource`, not directories - hence we download the
-files one by one.

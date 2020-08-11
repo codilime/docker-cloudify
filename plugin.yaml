@@ -44,6 +44,8 @@ node_types:
         type: boolean
         default: false
         description: if true, don't delete the image on uninstall
+      build_args:
+        default: {}
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
@@ -122,6 +124,24 @@ node_types:
           implementation: docker.docker_plugin.tasks.create_volume
         delete:
           implementation: docker.docker_plugin.tasks.delete_volume
+
+  docker.Secret:
+    derived_from: cloudify.nodes.Root
+    properties:
+      name:
+        default: null
+      driver:
+        default: local
+      data:
+        default: {}
+      labels:
+        default: {}
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: docker.docker_plugin.tasks.create_secret
+        delete:
+          implementation: docker.docker_plugin.tasks.delete_secret
 
 relationships:
   docker.container_connected_to_container:

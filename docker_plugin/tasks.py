@@ -85,7 +85,7 @@ def with_docker_client(settings_from=None):
 def _get_build_path(download_func, base_path):
     build_dir = tempfile.mkdtemp()
     try:
-        files_lst = download_func(os.path.join(base_path, 'files.lst'))
+        files_lst = download_func(base_path)
     except IOError:
         files = ['Dockerfile']
     else:
@@ -113,12 +113,13 @@ def build_image_from_repository(client, ctx):
 def build_image_from_dockerfile(client, ctx):
     name = ctx.node.properties['image_name']
     dockerfile = ctx.node.properties['dockerfile']
+    build_args = ctx.node.properties['build_args']
     try:
         image = client.images.get(name)
     except docker.errors.ImageNotFound:
-        path = _get_build_path(ctx.download_resource, dockerfile)
-        image = client.images.build(path=path, tag=name, rm=True, forcerm=True)
         ctx.logger.info('Building {0} from {1}'.format(name, dockerfile))
+        path = _get_build_path(ctx.download_resource, dockerfile)
+        image = client.images.build(path=path, tag=name, rm=True, forcerm=True, buildargs=build_args)
 
         if not image.id:
             raise RuntimeError('Unexpected error during build')
@@ -376,3 +377,26 @@ def delete_volume(client, ctx):
     volume = client.volumes.get(ctx.instance.runtime_properties['volume_id'])
     volume.remove(force=True)
     ctx.logger.info('Removed volume {0}'.format(volume_name))
+
+
+@operation()
+@with_docker_client()
+def create_secret(client, ctx):
+    secret_name = ctx.node.properties['name'] or ctx.node.name
+    secret = client.secrets.create(
+        name=secret_name,
+        data=ctx.node.properties['data'],
+        lables=ctx.node.properties['labels'],
+        driver=ctx.node.properties['driver'],
+    )
+    ctx.instance.runtime_properties['secret_id'] = secret.id
+    ctx.instance.runtime_properties['secret_name'] = secret_name
+
+
+@operation()
+@with_docker_client()
+def delete_secret(client, ctx):
+    secret_name = ctx.instance.runtime_properties['secret_name']
+    secret = client.volumes.get(ctx.instance.runtime_properties['secret_id'])
+    secret.remove(force=True)
+    ctx.logger.info('Removed secret {0}'.format(secret_name))
